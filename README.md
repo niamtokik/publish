@@ -84,6 +84,9 @@ to publish content on the web.
   - gemini module: add gemini format support
   - tarball: generate a tarball of the published files
   - zip: generate a zip of the published files
+  - dev.to: publish posts on dev.to
+  - wordpress: publish posts on wordpress
+  - medium: publish posts on medium
 
 # Bugs and Caveats
 
