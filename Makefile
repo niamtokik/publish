@@ -17,6 +17,7 @@ _MAKE ?= $(shell which make)
 
 # absolute path to pandoc
 _PANDOC ?= $(shell which pandoc)
+_PANDOC_OPTS ?= -f markdown
 
 # list of all drafts posts
 _DRAFTED := $(shell ls -t $(PUBLISH_DRAFTS_DIRECTORY))
@@ -39,7 +40,7 @@ define build_html
 _BUILD_HTML += $$(PUBLISH_WWW_DIRECTORY)/$(1)/index.html
 
 $$(PUBLISH_WWW_DIRECTORY)/$(1)/index.html: $$(PUBLISH_WWW_DIRECTORY)/$(1)
-	$$(_PANDOC) -o $$(@) $$(__SOURCE_$(1))/$(1)/README.md
+	$$(_PANDOC) $$(_PANDOC_OPTS) -t html5 -o $$(@) $$(__SOURCE_$(1))/$(1)/README.md
 endef
 
 # pdf support
@@ -47,7 +48,7 @@ define build_pdf
 _BUILD_PDF += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).pdf
 
 $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).pdf: $$(PUBLISH_WWW_DIRECTORY)/$(1)
-	$$(_PANDOC) -o $$(@)  $$(__SOURCE_$(1))/$(1)/README.md
+	$$(_PANDOC) $$(_PANDOC_OPTS) -t pdf -o $$(@)  $$(__SOURCE_$(1))/$(1)/README.md
 endef
 
 # epub support
@@ -55,7 +56,7 @@ define build_epub
 _BUILD_EPUB += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub
 
 $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub: $$(PUBLISH_WWW_DIRECTORY)/$(1)
-	$$(_PANDOC) -o $$(@)  $$(__SOURCE_$(1))/$(1)/README.md
+	$$(_PANDOC) $$(_PANDOC_OPTS) -t epub -o $$(@)  $$(__SOURCE_$(1))/$(1)/README.md
 endef
 
 ######################################################################
