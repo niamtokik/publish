@@ -20,8 +20,9 @@ PUBLISH_INDEX_DESCRIPTION=""
 ######################################################################
 # Internal configuration
 ######################################################################
-PUBLISH_DRAFTED_DIRECTORY = drafted
-PUBLISH_PUBLISHED_DIRECTORY = published
+# PUBLISH_DRAFTED_DIRECTORY = drafted
+# PUBLISH_PUBLISHED_DIRECTORY = published
+PUBLISH_POSTS_DIRECTORY = posts
 PUBLISH_TEMPLATES_DIRECTORY = templates
 PUBLISH_BUILD_DIRECTORY = _build
 PUBLISH_WWW_DIRECTORY = $(PUBLISH_BUILD_DIRECTORY)/www

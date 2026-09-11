@@ -20,10 +20,10 @@ _PANDOC ?= $(shell which pandoc)
 _PANDOC_OPTS ?= -f markdown
 
 # list of all drafts posts
-_DRAFTED := $(shell ls -t $(PUBLISH_DRAFTS_DIRECTORY))
+_DRAFTED := $(shell ls -t $(PUBLISH_POSTS_DIRECTORY) | grep ^draft)
 
 # list of all published posts
-_PUBLISHED := $(shell ls -t $(PUBLISH_PUBLISHED_DIRECTORY))
+_PUBLISHED := $(shell ls -t $(PUBLISH_POSTS_DIRECTORY) | grep -v ^draft)
 
 ######################################################################
 # make templates
