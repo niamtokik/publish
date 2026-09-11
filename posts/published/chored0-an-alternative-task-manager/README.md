@@ -1,3 +1,11 @@
+---
+title: "Chored/0: An Alternative Task Manager"
+subtitle: "..."
+published_date: "..."
+---
+
+# Chored/0: An Alternative Task Manager
+
 > The answer is out there, Neo, and it's looking for you, and it will find you if you want it to.
 > **The Matrix**, Trinity
 

@@ -44,6 +44,9 @@ to publish content on the web.
   - [ ] add support for templates
   - [ ] add support for cover image
 
+- core/txt:
+  - [ ] add txt/ansi support
+
 - core/djvu:
   - [ ] add support for djvu
 
@@ -61,12 +64,17 @@ to publish content on the web.
   - [ ] add keywords indexer supports (e.g. `www/keywords/${keyword}/index.html`
 
 - core/pgp:
+  - [ ] add a way to export the public key in www/pkey.pgp
   - [ ] add support for pgp signature
   - [ ] all produced files must signed
 
 - core/ssh:
+  - [ ] add a way to export the public key in www/id_ecdsa.pub
   - [ ] add support for ssh signature (signify?)
   - [ ] all produced files must be signed
+
+- core/security:
+  - [ ] add support for canary
 
 - modules:
   - [ ] add a way to register them
