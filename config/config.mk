@@ -69,4 +69,4 @@ PUBLISH_SIGNATURE_PUBLIC_KEY=""
 ######################################################################
 # Publish Modules
 ######################################################################
-PUBLISH_MODULES="wayback_machine archive_today gist"
+PUBLISH_MODULES = devto

@@ -189,7 +189,7 @@ endef
 ######################################################################
 # epub support
 ######################################################################
-define epub_build 
+define epub_build
 _BUILD_EPUB += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub
 
 # pandoc command to generate epub
@@ -225,14 +225,28 @@ clean-epub: $$(_BUILD_EPUB)
 endef
 
 ######################################################################
+# module support
+######################################################################
+define include_module
+include ./config/modules/$(1).mk
+endef
+
+######################################################################
 # default target
 ######################################################################
 .PHONY += help
-help:
+help: help-all help-modules
+
+.PHONY += help-all
+help-all:
 	@echo "Usage: make [help|build|publish]"
 	@echo "  help: display this message"
 	@echo "  build: compile the project in ${PUBLISH_BUILD_DIRECTORY}"
 	@echo "  publish: build and generate extras data"
+	@echo "  modules (available): $(PUBLISH_MODULES)"
+
+.PHONY += help-modules
+help-modules: $(HELP_MODULES)
 
 ######################################################################
 # internal targets
@@ -270,6 +284,11 @@ $(eval $(call pdf))
 $(eval $(call epub))
 
 ######################################################################
+# include modules
+######################################################################
+$(foreach module,$(PUBLISH_MODULES), $(eval $(call include_module,$(module))))
+
+######################################################################
 # main targets
 ######################################################################
 .PHONY += all
@@ -294,7 +313,7 @@ publish-target: $(_BUILD_PUBLISHED)
 publish-post-callbacks: $(PUBLISH_POST_CALLBACKS)
 
 .PHONY += clean
-clean: 
+clean:
 
 .PHONY += clean-build
 clean-publish: $(_CLEAN)

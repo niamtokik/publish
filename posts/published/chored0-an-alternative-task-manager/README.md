@@ -179,7 +179,7 @@ template job_template {
 
 # Conclusion
 
-This is a pet project, I would like to use it to fix one time for all some part of my missing knowledge in Unix/Posix system design and C programming. The project is called [`chore`](https://github.com/niamtokik/chore) on Github. This is not something ready, yet, but you have now an idea of the goal. No dead-line though, I will take my time! 
+This is a pet project, I would like to use it to fix one time for all some part of my missing knowledge in Unix/Posix system design and C programming. The project is called [`chore`](https://github.com/niamtokik/chore) on Github. This is not something ready, yet, but you have now an idea of the goal. No dead-line though, I will take my time!
 
 Have fun!
 

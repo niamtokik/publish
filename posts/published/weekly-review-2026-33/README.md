@@ -24,7 +24,7 @@ Regarding my projects, including my application, it was in stand-by as well duri
 
 ▶️ [**Fil-C: Garbage In, Memory Safety Out! - Filip Pizlo | SSW 2026**](https://www.youtube.com/watch?v=5F-2Y1LPRek): a talk about [Fil-c](https://fil-c.org/) (a way to protect memory in C) with the creator of the project. Really interesting project using many unheard Clang features, can be a good alternative to "modern" programming language like Rust, Go or Zig.
 
-🏗️ [**Assembly Hall of Shame**](https://github.com/xoreaxeaxeax/asm-hall-of-shame): A project checking ASM instruction performance by Christopher Domas. 
+🏗️ [**Assembly Hall of Shame**](https://github.com/xoreaxeaxeax/asm-hall-of-shame): A project checking ASM instruction performance by Christopher Domas.
 
 📝 [**Elixir's GenStage Demand (a Visual Explainer)**](https://andrealeopardi.com/posts/genstage-demand-visualized/): an article explaining how Elixir [`GenStage`](https://gen-stage.hexdocs.pm/GenStage.html) is working with beautiful animation.
 
