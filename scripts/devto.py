@@ -26,7 +26,6 @@ from pathlib import Path
 import http.client
 from urllib.parse import urlsplit
 
-
 class Article:
 
     def __headers(self):
@@ -36,6 +35,7 @@ class Article:
             f'''cached_user_username: "{self.cached_user_username}"''',
             f'''canonical_url: "{self.canonical_url}"''',
             f'''comments_count: "{self.comments_count}"''',
+            f'''cover_image: "{self.cover_image}"''',
             f'''created_at: "{self.created_at}"''',
             f'''crossposted_at: "{self.crossposted_at}"''',
             f'''description: "{self.description}"''',
@@ -70,6 +70,7 @@ class Article:
         self.cached_user_username = json.get("cached_user_username", None)
         self.canonical_url = json.get("canonical_url", None)
         self.comments_count = json.get("comments_count", None)
+        self.cover_image = json.get("cover_image", None)
         self.created_at = json.get("created_at", None)
         self.crossposted_at = json.get("crossposted_at", None)
         self.description = json.get("description", None)
@@ -155,19 +156,19 @@ class Article:
             f.write(self.body_markdown)
 
     def __export_image(self):
-        if (self.main_image):
+        if (self.cover_image):
             dest_dir = "/".join([
                 self.__dest_dir(),
                 "assets"
             ])
             dest_image = "/".join([
                 dest_dir,
-                "main_image.jpg"
+                "cover_image.jpg"
             ])
             print(dest_image)
             os.makedirs(dest_dir, exist_ok=True)
             with open(dest_image, 'wb') as f:
-                image_data = self.__get(self.main_image)
+                image_data = self.__get(self.cover_image)
                 f.write(image_data)
 
     def __get(self, url):

@@ -114,15 +114,50 @@ clean-json: $$(_BUILD_JSON)
 endef
 
 ######################################################################
+# sha256 support
+######################################################################
+define sha256_build
+_BUILD_SHA256 += $(1).sha256
+
+$(1).sha256: $(1)
+	cat $(1) | openssl dgst -hex | awk '{print $$$$NF}'  > $$(@)
+endef
+
+define sha256
+$$(foreach post,$$(_BUILD_HTML),$$(eval $$(call sha256_build,$$(post))))
+$$(foreach post,$$(_BUILD_PDF),$$(eval $$(call sha256_build,$$(post))))
+$$(foreach post,$$(_BUILD_EPUB),$$(eval $$(call sha256_build,$$(post))))
+endef
+
+######################################################################
+# signify support
+######################################################################
+define signify_build
+_BUILD_SIGNIFY += $(1).sign
+
+$(1).sign: $(1)
+	signify -S -x $$(@) -s $$(PUBLISH_SIGNIFY_KEY).sec -m $(1)
+endef
+
+define signify
+$$(foreach post,$$(_BUILD_HTML),$$(eval $$(call signify_build,$$(post))))
+$$(foreach post,$$(_BUILD_PDF),$$(eval $$(call signify_build,$$(post))))
+$$(foreach post,$$(_BUILD_EPUB),$$(eval $$(call signify_build,$$(post))))
+endef
+
+######################################################################
 # html support
 ######################################################################
 define html_build
 _BUILD_HTML += $$(PUBLISH_WWW_DIRECTORY)/$(1)/index.html
+_BUILD_HTML_SHA256 += $$(PUBLISH_WWW_DIRECTORY)/$(1)/index.html.sha256
+_BUILD_HTML_SIGNIFY += $$(PUBLISH_WWW_DIRECTORY)/$(1)/index.html.sign
 
 $$(PUBLISH_WWW_DIRECTORY)/$(1)/index.html: $$(PUBLISH_WWW_DIRECTORY)/$(1)
 	$$(_PANDOC) \
 		$$(_PANDOC_OPTS) \
 		$$(_PANDOC_OPTS_HTML) \
+		$$(PUBLISH_FORMATS_HTML_PARAMS) \
 		-t html5 \
 		-o $$(@) \
 		$$(__SOURCE_$(1))/$(1)/README.md
@@ -134,17 +169,17 @@ $$(foreach post,$$(_PUBLISHED),$$(eval $$(call html_build,$$(post))))
 
 _BUILD_DRAFTS += draft-build-html
 .PHONY += draft-build-html
-draft-build-html: $$(_BUILD_HTML)
+draft-build-html: $$(_BUILD_HTML) $$(_BUILD_HTML_SHA256) $$(_BUILD_HTML_SIGNIFY)
 
 _BUILD_PUBLISHED += build-html
 .PHONY += build-html
-build-html: $$(_BUILD_HTML)
+build-html: $$(_BUILD_HTML) $$(_BUILD_HTML_SHA256) $$(_BUILD_HTML_SIGNIFY)
 
 # cleaning the files
 _CLEAN += clean-html
 .PHONY += clean-html
-clean-html: $$(_BUILD_HTML)
-	rm $$(_BUILD_HTML)
+clean-html: $$(_BUILD_HTML) $$(_BUILD_HTML_SHA256) $$(_BUILD_HTML_SIGNIFY)
+	rm $$(_BUILD_HTML) $$(_BUILD_HTML_SHA256) $$(_BUILD_HTML_SIGNIFY)
 endef
 
 ######################################################################
@@ -152,11 +187,14 @@ endef
 ######################################################################
 define pdf_build
 _BUILD_PDF += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).pdf
+_BUILD_PDF_SHA256 += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).pdf.sha256
+_BUILD_PDF_SIGNIFY += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).pdf.sign
 
 $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).pdf: $$(PUBLISH_WWW_DIRECTORY)/$(1)
 	$$(_PANDOC) \
 		$$(_PANDOC_OPTS) \
 		$$(_PANDOC_OPTS_PDF) \
+		$$(PUBLISH_FORMATS_PDF_PARAMS) \
 		-t pdf \
 		-o $$(@) \
 		$$(__SOURCE_$(1))/$(1)/README.md
@@ -173,17 +211,17 @@ help-pdf:
 
 _BUILD_DRAFTS += draft-build-pdf
 .PHONY += draft-build-pdf
-draft-build-pdf: $$(_BUILD_PDF)
+draft-build-pdf: $$(_BUILD_PDF) $$(_BUILD_PDF_SHA256) $$(_BUILD_PDF_SIGNIFY)
 
 _BUILD_PUBLISHED += build-pdf
 .PHONY += build-pdf
-build-pdf: $$(_BUILD_PDF)
+build-pdf: $$(_BUILD_PDF) $$(_BUILD_PDF_SHA256) $$(_BUILD_PDF_SIGNIFY)
 
 # cleaning the files
 _CLEAN += clean-pdf
 .PHONY += clean-pdf
-clean-pdf: $$(_BUILD_PDF)
-	rm $$(_BUILD_PDF)
+clean-pdf: $$(_BUILD_PDF) $$(_BUILD_PDF_SHA256) $$(_BUILD_PDF_SIGNIFY)
+	rm $$(_BUILD_PDF) $$(_BUILD_PDF_SHA256) $$(_BUILD_PDF_SIGNIFY)
 endef
 
 ######################################################################
@@ -191,12 +229,15 @@ endef
 ######################################################################
 define epub_build
 _BUILD_EPUB += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub
+_BUILD_EPUB_SHA256 += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub.sha256
+_BUILD_EPUB_SIGNIFY += $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub.sign
 
 # pandoc command to generate epub
 $$(PUBLISH_WWW_DIRECTORY)/$(1)/$(1).epub: $$(PUBLISH_WWW_DIRECTORY)/$(1)
 	$$(_PANDOC) \
 		$$(_PANDOC_OPTS) \
 		$$(_PANDOC_OPTS_EPUB) \
+		$$(PUBLISH_FORMATS_EPUB_PARAMS) \
 		-t epub \
 		-o $$(@) \
 		$$(__SOURCE_$(1))/$(1)/README.md
@@ -210,18 +251,18 @@ $$(foreach post,$$(_PUBLISHED),$$(eval $$(call epub_build,$$(post))))
 # building the drafts epub posts
 _BUILD_DRAFTS += draft-build-epub
 .PHONY += draft-build-epub
-draft-build-epub: $$(_BUILD_EPUB)
+draft-build-epub: $$(_BUILD_EPUB) $$(_BUILD_EPUB_SHA256) $$(_BUILD_EPUB_SIGNIFY)
 
 # building the published epub post
 _BUILD_PUBLISHED += build-epub
 .PHONY += build-epub
-build-epub: $$(_BUILD_EPUB)
+build-epub: $$(_BUILD_EPUB) $$(_BUILD_EPUB_SHA256) $$(_BUILD_EPUB_SIGNIFY)
 
 # cleaning the files
 _CLEAN += clean-epub
 .PHONY += clean-epub
-clean-epub: $$(_BUILD_EPUB)
-	rm $$(_BUILD_EPUB)
+clean-epub: $$(_BUILD_EPUB) $$(_BUILD_EPUB_SHA256) $$(_BUILD_EPUB_SIGNIFY)
+	rm $$(_BUILD_EPUB) $$(_BUILD_EPUB_SHA256) $$(_BUILD_EPUB_SIGNIFY)
 endef
 
 ######################################################################
@@ -239,7 +280,7 @@ help: help-all help-modules
 
 .PHONY += help-all
 help-all:
-	@echo "Usage: make [help|build|publish]"
+	@echo "Usage: make [help|all|build|publish]"
 	@echo "  help: display this message"
 	@echo "  build: compile the project in ${PUBLISH_BUILD_DIRECTORY}"
 	@echo "  publish: build and generate extras data"
@@ -283,6 +324,15 @@ $(eval $(call pdf))
 # epub support
 $(eval $(call epub))
 
+# sha256 support
+$(eval $(call sha256))
+
+# signify support
+$(PUBLISH_SIGNIFY_KEY): $(PUBLISH_BUILD_DIRECTORY)
+	signify -G -n -p $(@).pub -s $(@).sec
+
+$(eval $(call signify))
+
 ######################################################################
 # include modules
 ######################################################################
@@ -293,6 +343,15 @@ $(foreach module,$(PUBLISH_MODULES), $(eval $(call include_module,$(module))))
 ######################################################################
 .PHONY += all
 all: draft publish
+
+# build the sha256 checksum
+.PHONY += build-sha256
+build-sha256: $(_BUILD_SHA256)
+	echo $(_BUILD_SHA256)
+
+# build the signify signature
+.PHONY += build-signify
+build-signify: $(_BUILD_SIGNIFY)
 
 .PHONY += draft
 draft: draft-build

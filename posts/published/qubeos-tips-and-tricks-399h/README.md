@@ -1,23 +1,24 @@
 ---
-cached_tag_list: "qubeos, security, syadmin, xen"
-cached_user_name: "Mathieu Kerjouan"
-cached_user_username: "niamtokik"
-canonical_url: "None"
+cached_tag_list: "None"
+cached_user_name: "None"
+cached_user_username: "None"
+canonical_url: "https://dev.to/niamtokik/qubeos-tips-and-tricks-399h"
 comments_count: "0"
-created_at: "2026-07-01T19:01:42.485Z"
+cover_image: "https://media2.dev.to/dynamic/image/width=1000,height=420,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fykl7es13f7kix4k0gan6.jpg"
+created_at: "None"
 crossposted_at: "None"
 description: "Foreword: these notes are coming from a draft. I was planning to create an article on QubeOS for a..."
-edited_at: "2026-09-10T18:19:34.175Z"
+edited_at: "None"
 feed_source_url: "None"
-last_comment_at: "2026-07-09T10:00:00.000Z"
-main_image: "https://dev-to-uploads.s3.us-east-2.amazonaws.com/uploads/articles/ykl7es13f7kix4k0gan6.jpg"
-main_image_background_hex_color: "#dddddd"
+last_comment_at: "None"
+main_image: "None"
+main_image_background_hex_color: "None"
 path: "/niamtokik/qubeos-tips-and-tricks-399h"
 public_reactions_count: "0"
 published_at: "None"
 published: "True"
-published_from_feed: "False"
-show_comments: "True"
+published_from_feed: "None"
+show_comments: "None"
 slug: "qubeos-tips-and-tricks-399h"
 social_image: "None"
 title: "QubeOS Tips and Tricks"
@@ -187,9 +188,9 @@ qvm-run --disp ${disp_vm} xterm
 
 # Conclusion
 
-These commands have been collected during a small period of times. I'm not an active QubeOS user anymore, OpenBSD is still and will remain my favorite Operating System.
+These commands have been collected during a small period of times. I'm not an active QubeOS user anymore, OpenBSD is still and will remain my favorite Operating System. 
 
 ----
 
 Cover Image by <a href="https://unsplash.com/@sfkopstein?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">shraga kopstein</a> on <a href="https://unsplash.com/photos/a-close-up-of-a-bunch-of-pencils-XeRGWOAr53c?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a>
-
+      

@@ -1,0 +1,525 @@
+<h1 id="substack0-authentication-and-content-management">Substack/0:
+Authentication and Content Management</h1>
+<p><a href="https://en.wikipedia.org/wiki/Reverse_engineering">Reverse
+engineering</a> network protocol is an interesting process, firstly
+because one can learn a lot of things you would probably never thought
+of, and secondly because it is a deep dive into developers logic.
+Reverse engineering is challenging, and is usually made of really small
+victories. Why doing that? Well, why not? In fact, most of those
+companies are selling our private data, our behaviors and our stats to
+other private companies, why should also be forced to use their own
+implementation of their client? That’s probably one part of the idea…
+But it can also be to implement a library to communicate with a private
+API and give us the possibility to automatize recurrent tasks.</p>
+<p>Now, why <a href="https://substack.com/">Substack</a>? This is still
+a small social network, inspired by <a
+href="http://x.com/">X/Twitter</a> and mixed with a bit of <a
+href="https://wordpress.com/">Wordpress</a>. It’s a kind of
+micro-blogging platform and even if they are offering a <a
+href="https://substackapi.dev/quickstart">public API</a>, using the
+private one is a good way to learn how their web and mobile applications
+are working. Furthermore, doing reversing engineering on a web stack can
+lead to interesting result. Indeed, a web application is made in
+JavaScript, most of the time using <a
+href="https://developer.mozilla.org/en-US/docs/Glossary/AJAX">AJAX</a>
+with stateless HTTP requests. It can be generalized and some tools can
+be created to help reverse engineering other private API.</p>
+<p>Anyway, Reverse Engineering is a goddamn great way to improve all
+your skills. Let’s. Go.</p>
+<h1 id="preparation">Preparation</h1>
+<p>The main tool we will use for this article will be <a
+href="https://curl.se/"><code>curl</code></a> and any kind of browser
+with a <a
+href="https://www.chromium.org/chromium-os/developer-library/guides/device/developer-mode/">developer
+mode activated</a>. In the developer window, got to the Network tab and
+find a way to preserve the logs (e.g. <code>Preserve log</code> radio
+button on Chromium). A social network can produce a lot of noise, you
+should also filter the requests and display only the
+<code>Fetch/XHR</code> ones.</p>
+<p>Having an easy way to document and test the API is also a good thing.
+If you are not familiar with <a
+href="https://www.openapis.org/">OpenAPI</a>, it’s a good time to check
+that. If you are lazy, you can also use <a
+href="https://insomnia.rest/">Insomnia</a>, it’s free and open-source.
+This tool is an alternative to <a
+href="https://www.postman.com/downloads/">Postman</a>. It will help us
+to create the specification and easily tests our finding. You can see
+this tool also as an extension of <code>curl</code>, with a GUI.</p>
+<p>Automated tools can help you to do more, but the article here is not
+to show you how to use them, it’s to show you how to reverse engineering
+an interface with cheap tools anyone can use. Yes, it’s perhaps slower,
+but at least, you will learn a lot. You will also try and fail, the best
+way to learn discipline and tenacity.</p>
+<h1 id="requirements">Requirements</h1>
+<p>If you have your own Substack account, I would recommend to create a
+new one dedicated for your reverse engineering goal. Perhaps more than
+one account, because if you want to publish/subscribe to someone else,
+you will need more than one account. Most of the companies are not
+allowing us to use our own clients to deal with their private API, and
+those accounts can be kicked, blocked, banned or simply removed because
+of that. You can use temporary email services like <a
+href="http://yopmail.com">yopmail</a>, <a
+href="https://10minutemail.com/">10minutemail</a> or any other
+alternative. You can also create a mail at <a
+href="https://mail.tutanota.com/">Tutanota</a> or <a
+href="https://proton.me/mail">Protonmail</a> if you want, probably
+better for long term reverse engineering sessions. For the rest of this
+post I will use a fresh account from 10minutemail, in case of credential
+leaks, it will not be a problem. Here more alternative, be careful, some
+of them will be blocked by the services you want to reverse
+engineering.</p>
+<ul>
+<li><p><a href="https://10minutemail.com/">10 Minute Email</a></p></li>
+<li><p><a href="https://www.33mail.com/">33Mail</a></p></li>
+<li><p><a href="https://www.emailondeck.com/">Email on Deck</a></p></li>
+<li><p><a href="https://erine.email/">erine.email</a></p></li>
+<li><p><a href="https://www.fakemailgenerator.com/">fake Mail
+Generator</a></p></li>
+<li><p><a href="https://www.guerrillamail.com/">Guerilla
+Mail</a></p></li>
+<li><p><a href="https://inboxes.com/">Inboxes</a></p></li>
+<li><p><a href="https://maildrop.cc/">Maildrop</a></p></li>
+<li><p><a href="https://www.mailinator.com/">Mailinator</a></p></li>
+<li><p><a href="https://mailnesia.com/">Mailnesia</a></p></li>
+<li><p><a href="https://www.mintemail.com/">MintEmail</a></p></li>
+<li><p><a href="https://www.mohmal.com/en">Mohmal</a></p></li>
+<li><p><a href="https://reusable.email/">Reusable Email</a></p></li>
+<li><p><a href="temp-mail.org">Temp Mail</a></p></li>
+<li><p><a href="https://tempr.email/">Tempr Email</a></p></li>
+<li><p><a href="https://tempail.com/en/">Tempail</a></p></li>
+<li><p><a href="https://temporarymail.com/">Temporary Mail</a></p></li>
+<li><p><a href="https://www.33mail.com/">33Mail</a></p></li>
+</ul>
+<p>Another thing is to use <a
+href="https://manpages.debian.org/trixie/tor/tor.1.en.html">Tor</a>, <a
+href="https://manpages.debian.org/trixie/proxychains4/proxychains.1.en.html">Proxychains</a>
+(via an <a href="https://github.com/proxifly/free-proxy-list">open proxy
+list)</a> or a VPN to avoid sharing your personal IP address. Some
+service providers can tag your IP address and share it with other
+companies. It is especially true for the big companies like Google,
+Facebook or X/Twitter. If you are trying to reverse engineer one of
+them, use something to hide your true IP address. If you have Tor
+configured on your dev machine, you can configure it for curl by setting
+<code>HTTP_PROXY</code>, <code>HTTPS_PROXY</code> or
+<code>ALL_PROXY</code> <a
+href="https://manpages.debian.org/trixie/curl/curl.1.en.html#ENVIRONMENT">environment
+variables</a>:</p>
+<pre class="console"><code>$ export ALL_PROXY=http://127.0.0.1:9081</code></pre>
+<p>If you prefer control those proxy via the CLI, pass your proxy
+address to the <a
+href="https://manpages.debian.org/trixie/curl/curl.1.en.html#ENVIRONMENT--proxy"><code>--proxy</code></a>
+(or <code>-x</code>) argument. I don’t really have any preferences there
+though, you can use whatever methods you like.</p>
+<p>Last thing, if you are using someone else IP address, you will
+probably need to deal with captchas. Indeed, Tor nodes are public and
+some companies are blocking them (in fact, that’s a good practice, a
+company who wants to offer better privacy would probably use onion
+hidden services). If you got captchas, solving them with
+<code>curl</code> can be a real challenge, but you can easily found some
+crazy guys on the who who already worked on that, like <a
+href="https://www.capsolver.com/blog/All/solve-captcha-with-curl">Solving
+CAPTCHA with cURL: A Step-by-Step Guide</a> by Lucas Mitchell or the <a
+href="https://github.com/DenimEvert/curl-scraping"><code>curl-scraping</code></a>
+project.</p>
+<h1 id="http-headers">HTTP Headers</h1>
+<p>When using substack, you will probably notice in the developer window
+a lot of requests. Those requests contain HTTP headers. Most of them
+will be required to mimic the behavior of the Substack web application.
+Not all are required, it will depend of the context.</p>
+<ul>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept"><code>Accept</code></a>:
+default to <code>*/*</code>, to be set with the <code>--header</code>
+curl flag;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Encoding"><code>Accept-Encoding</code></a>:
+default to <code>gzip, deflate, br, zstd</code>, to be set with the
+<code>--header</code> curl flag;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Accept-Language"><code>Accept-Language</code></a>:
+default to <code>en-US,en;q=0.5</code>, to be set with the
+<code>--header</code> curl flag;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control"><code>Cache-Control</code></a>:
+default to <code>max-age=0</code>, to be set with the
+<code>--header</code> curl flag;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Type"><code>Content-Type</code></a>:
+default to <code>application/json</code>, this header should be set only
+for <code>POST</code> and <code>DELETE</code> requests for now;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cookie"><code>Cookie</code></a>:
+this value is configured by curl with the help of the <code>-b</code>
+and <code>-c</code> flags;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Priority"><code>Priority</code></a>:
+set by default to <code>u=1, i</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referer"><code>Referer</code></a>:
+set by default to <code>https://substack.com/</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-CH-UA"><code>sec-ch-ua</code></a>:
+set with the name and the version of the browser, for example, in my
+case:
+<code>"Brave";v="147", "Not.A/Brand";v="8", "Chromium";v="147"</code></p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-CH-UA-Mobile"><code>sec-ch-ua-mobile</code></a>:
+set by default to <code>?0</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-CH-UA-Platform"><code>sec-ch-ua-platform</code></a>:
+set with your platform code name, for example on my case, on one of my
+Linux box: <code>"Linux"</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Dest"><code>sec-fetch-dest</code></a>:
+set by default to <code>empty</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Mode"><code>sec-fetch-mode</code></a>:
+set by default to <code>cors</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-Fetch-Site"><code>sec-fetch-site</code></a>:
+set by default to <code>same-origin</code>;</p></li>
+<li><p><a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Sec-GPC"><code>sec-gpc</code></a>:
+set by default to <code>1</code>.</p></li>
+</ul>
+<p>We can make our life a bit easier because most of those headers are
+statics and will probably never changes during across the HTTP requests.
+Creating environment variables can solve this issue, or even better, use
+<a
+href="https://manpages.debian.org/trixie/curl/curl.1.en.html#H,">header
+files</a> with the <code>--headers</code> argument from
+<code>curl</code>.</p>
+<pre class="console"><code>$ cat &gt; headers.txt &lt;&lt; EOF
+Accept: */*
+# be sure curl is compatible with gzip,
+# deflate, br or zstd. Those encodings are
+# the one set on Brave browser by default.
+# If you receive a binary object from the
+# Substack end-points, it will probably
+# because of that.
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.5
+Cache-Control: max-age=0
+# Not all requests are sending data.
+#   Content-Type: application/json
+# The cookies are managed with -j and -c arguments
+#   Cookie: 
+Priority: u=1, i;
+Referer: https://substack.com/
+sec-ch-ua: &quot;Brave&quot;;v=&quot;147&quot;, &quot;Not.A/Brand&quot;;v=&quot;8&quot;, &quot;Chromium&quot;;v=&quot;147
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: &quot;Linux&quot;
+sec-fetch-dest: empty
+sec-fetch-mode: cors
+sec-fetch-site: same-origin
+sec-gpc: 1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.3
+EOF
+
+$ curl -H@headers.txt ${target}</code></pre>
+<p>I invite you to read the headers specifications from the <a
+href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers">Mozilla
+developer website</a>. It contains a lot of useful information, and will
+probably be more accurate than me.</p>
+<h1 id="authentication">Authentication</h1>
+<p>Substack is using MFA with OTP code via e-mail. If your account was
+correctly created previously, you can try to log to the web interface. A
+JSON is required though, it will contain your email, and few other
+fields:</p>
+<ul>
+<li><p><code>email</code>: your email address as string</p></li>
+<li><p><code>redirect</code>: the redirected path as string</p></li>
+<li><p><code>can_create_user</code>: a boolean? I currently don’t know
+this thing means.</p></li>
+</ul>
+<p>The JSON object can now be sent to
+<code>https://substack.com/api/v1/email-login</code> end-point. Note:
+you should probably store the cookies you received in
+<code>cookie.txt</code> file.</p>
+<pre class="console"><code>$ touch cookie.txt
+
+$ export CURL_OPTS=&quot;-vLb cookie.txt -c cookie.txt -H@headers.txt&quot;</code></pre>
+<p>The JSON object to authenticate via e-mail is kind simple, it has 3
+fields, <code>email</code>, <code>redirect</code> and
+<code>can_create_user</code>.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email&quot;</span><span class="fu">:</span> <span class="st">&quot;x@vtmpj.net&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;redirect&quot;</span><span class="fu">:</span> <span class="st">&quot;/&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;can_create_user&quot;</span><span class="fu">:</span> <span class="kw">true</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Let save that in <code>email_login.json</code> and use it with
+<code>curl</code>.</p>
+<pre class="console"><code>$ cat &gt; email_login.json &lt;&lt; EOF
+{
+  &quot;email&quot;: &quot;x@vtmpj.net&quot;,
+  &quot;redirect&quot;: &quot;/&quot;,
+  &quot;can_create_user&quot;: true
+}
+EOF
+
+$ curl ${CURL_OPTS} \
+  -H &#39;Content-Type: application/json&#39; \
+  -d @email_login.json \
+  -X POST \
+  https://substack.com/api/v1/email-login </code></pre>
+<p>It should return this kind of JSON object, containing
+<code>verification_code</code> and <code>onboarding_redirect</code>
+fields.</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;verification_code&quot;</span><span class="fu">:</span> <span class="st">&quot;optional&quot;</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;onboarding_redirect&quot;</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>After having executed this command, you should get an e-mail from
+substack containing the 6 digits OTP code. If it’s the case, you can
+send this code to the substack API to valid your authentication via OTP.
+The JSON object here is quite simple as well with 3 fields, where
+<code>code</code> is containing the OTP code received by mail,
+<code>email</code> containing the e-mail used for your
+<code>authentication</code> and <code>redirection</code> containing the
+URL to be redirected after a successful authentication.</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;code&quot;</span><span class="fu">:</span> <span class="st">&quot;764945&quot;</span><span class="fu">,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;email&quot;</span><span class="fu">:</span> <span class="st">&quot;x@vtmpj.net&quot;</span><span class="fu">,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;redirect&quot;</span><span class="fu">:</span> <span class="st">&quot;https://substack.com/&quot;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Let store this object in <code>email_otp_login_complete.json</code>
+file for now.</p>
+<pre class="console"><code>$ cat &gt; email_otp_login_complete.json &lt;&lt; EOF
+{
+  &quot;code&quot;: &quot;764945&quot;,
+  &quot;email&quot;: &quot;x@vtmpj.net&quot;,
+  &quot;redirect&quot;: &quot;https://substack.com/&quot;
+}
+EOF 
+
+$ curl ${CURL_OPTS} \
+  -H &#39;Content-Type: application/json&#39; \
+  -d @email_otp_login_complete.json \
+  -X POST \
+  https://substack.com/api/v1/email-otp-login/complete</code></pre>
+<p>After this request, you should now have a valid authenticated cookie
+containing your session. On my side, the session received was valid for
+90 days (~3months).</p>
+<p>If your headers are not correctly configured (for example, you forgot
+to add the application type one), this kind of JSON object will be
+returned:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;errors&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;location&quot;</span><span class="fu">:</span> <span class="st">&quot;body&quot;</span><span class="fu">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;param&quot;</span><span class="fu">:</span> <span class="st">&quot;email&quot;</span><span class="fu">,</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;msg&quot;</span><span class="fu">:</span> <span class="st">&quot;Invalid value&quot;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;location&quot;</span><span class="fu">:</span> <span class="st">&quot;body&quot;</span><span class="fu">,</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;param&quot;</span><span class="fu">:</span> <span class="st">&quot;code&quot;</span><span class="fu">,</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;msg&quot;</span><span class="fu">:</span> <span class="st">&quot;Invalid value&quot;</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span><span class="ot">,</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;location&quot;</span><span class="fu">:</span> <span class="st">&quot;body&quot;</span><span class="fu">,</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;param&quot;</span><span class="fu">:</span> <span class="st">&quot;code&quot;</span><span class="fu">,</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;msg&quot;</span><span class="fu">:</span> <span class="st">&quot;Invalid value&quot;</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>While waiting for the OTP via e-mail, the application is sending a
+kind of ping.</p>
+<pre class="console"><code>$ curl ${CURL_OPTS} \
+  https://substack.com/api/v1/am_i_logged_in</code></pre>
+<p>During the session, I also discover the link sent by Substack in the
+e-mail to validate the logins stay valid for a long period of time
+(still not sure of the delay though). In fact, after 2 successful login
+via e-mail, the requests started to return this message:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;error&quot;</span><span class="fu">:</span> <span class="st">&quot;Too many login emails&quot;</span><span class="fu">,</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;single&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>If it’s the case, it’s probably mean the links from your e-mails are
+still active, and you can use them to fetch a session via
+<code>curl</code>.</p>
+<pre class="console"><code>$ curl ${CURL_OPTS} \
+  &#39;https://email.mg-tx1.substack.com/c/${payload}&#39;</code></pre>
+<p>The <code>${payload}</code> value is a base64uri string, probably
+encrypted (or random), used on the Substack side to validate the
+authentication. If this previous command is working, you should then be
+redirected to the website with a new session stored in the cookies.</p>
+<p>Note: it seems Substack is using HTTP/3.</p>
+<h1 id="creating-content">Creating Content</h1>
+<p>Posting messages on Substack look straightforward, but it can be
+challenging due to the JSON object asked by the end-point. Here an
+example:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;bodyJson&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;doc&quot;</span><span class="fu">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;attrs&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;schemaVersion&quot;</span><span class="fu">:</span> <span class="st">&quot;v1&quot;</span><span class="fu">,</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>      <span class="fu">{</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;paragraph&quot;</span><span class="fu">,</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;content&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>          <span class="fu">{</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;text&quot;</span><span class="fu">,</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;text&quot;</span><span class="fu">:</span> <span class="st">&quot;On Friday, it’s Erlang day.&quot;</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>          <span class="fu">}</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>        <span class="ot">]</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>      <span class="fu">}</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;tabId&quot;</span><span class="fu">:</span> <span class="st">&quot;for-you&quot;</span><span class="fu">,</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;surface&quot;</span><span class="fu">:</span> <span class="st">&quot;feed&quot;</span><span class="fu">,</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;replyMinimumRole&quot;</span><span class="fu">:</span> <span class="st">&quot;everyone&quot;</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>As you can see, Substack’s post are following a specific schema. I’m
+not sure this is an open-source format, but you can find resources on
+the web for that, like the documentation from <a
+href="https://substack-api.readthedocs.io/api-reference/"><code>substack-api</code></a>
+on readthedocs. Anyway, let reuse that and past it in
+<code>message.json</code> then invoke <code>curl</code>.</p>
+<pre class="console"><code>$ cat &gt; message.json &lt;&lt; EOF
+{
+  &quot;bodyJson&quot;: {
+    &quot;type&quot;: &quot;doc&quot;,
+    &quot;attrs&quot;: {
+      &quot;schemaVersion&quot;: &quot;v1&quot;,
+      &quot;title&quot;: null
+    },
+    &quot;content&quot;: [
+      {
+        &quot;type&quot;: &quot;paragraph&quot;,
+        &quot;content&quot;: [
+          {
+            &quot;type&quot;: &quot;text&quot;,
+            &quot;text&quot;: &quot;On Friday, it’s Erlang day.&quot;
+          }
+        ]
+      }
+    ]
+  },
+  &quot;tabId&quot;: &quot;for-you&quot;,
+  &quot;surface&quot;: &quot;feed&quot;,
+  &quot;replyMinimumRole&quot;: &quot;everyone&quot;
+}
+EOF
+
+$ curl ${CURL_OPTS} \
+  -H &quot;Content-Type: application/json&quot; \
+  -X POST \
+  -d @message.json\
+  https://substack.com/api/v1/comment/feed</code></pre>
+<p>In case of success, you will receive a JSON object containing a lot
+of information:</p>
+<p><code>json{   "user_id": 12345678,   "body": "My awesome message",   "body_json": {     "type": "doc",     "attrs": {       "schemaVersion": "v1",       "title": null     },     "content": [       {         "type": "paragraph",         "content": [           {             "type": "text",             "text": "My awesome message"           }         ]       }     ]   },   "post_id": null,   "publication_id": null,   "media_clip_id": null,   "ancestor_path": "",   "type": "feed",   "status": "published",   "reply_minimum_role": "everyone",   "id": 12345678,   "deleted": false,   "date": "2026-06-19T11:00:00.000Z",   "name": "Aragog",   "photo_url": "https://substack-post-media.s3.amazonaws.com/public/images/5d26902d-0000-abcd-1234-e82c0d0e9d55_144x144.png",   "reactions": {     "❤": 0   },   "children": [],   "userStatus": {     "bestsellerTier": null,     "subscriberTier": null,     "leaderboard": null,     "vip": false,     "badge": null,     "subscriber": null   },   "user_bestseller_tier": null,   "isFirstFeedCommentByUser": false,   "reaction_count": 0,   "restacks": 0,   "restacked": false,   "children_count": 0,   "attachments": [],   "language": null,   "autotranslate_to": null }</code></p>
+<p>Great, we have published our first post with <code>curl</code>. The
+interesting field for now from this payload:</p>
+<ul>
+<li><p><code>user_id</code>: the identifier of the substack user, I
+think we can get it from another end-point, but it can be useful to have
+it;</p></li>
+<li><p><code>body</code>: the body of the message published;</p></li>
+<li><p><code>body_json</code>: the body using the Substack JSON
+format;</p></li>
+<li><p><code>status</code>: the status of the post, if
+<code>published</code>, then the post can be seen by everybody;</p></li>
+<li><p><code>id</code>: probably the post identifier, we will check that
+later;</p></li>
+<li><p><code>date</code>: the publication UTC date;</p></li>
+<li><p><code>name</code>: the name of the Substack user;</p></li>
+</ul>
+<p>The rest is mostly details we don’t care for now.</p>
+<h1 id="getting-content">Getting Content</h1>
+<p>Many end-points can be used to retrieve posts information, in our
+case, we want the one to fetch only one comment.</p>
+<pre class="console"><code>$ curl ${CURL_OPTS} \
+  https://substack.com/api/v1/reader/comment/${post_id}</code></pre>
+<p>The returned JSON object is huge. I will select only few of
+interesting fields.</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;item&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;entity_key&quot;</span><span class="fu">:</span> <span class="st">&quot;c-123456&quot;</span><span class="fu">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;comment&quot;</span><span class="fu">,</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;context&quot;</span><span class="fu">:</span> <span class="fu">{},</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;comment&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="dv">123456</span><span class="fu">,</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;body&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;body_json&quot;</span><span class="fu">:</span> <span class="fu">{},</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;user_id&quot;</span><span class="fu">:</span> <span class="dv">521046804</span><span class="fu">,</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;feed&quot;</span><span class="fu">,</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;date&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-06-19T12:04:29.130Z&quot;</span><span class="fu">,</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;reply_minimum_role&quot;</span><span class="fu">:</span> <span class="st">&quot;everyone&quot;</span><span class="fu">,</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;media_clip_id&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;Aragog&quot;</span><span class="fu">,</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;bio&quot;</span><span class="fu">:</span> <span class="st">&quot;...&quot;</span><span class="fu">,</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;handle&quot;</span><span class="fu">:</span> <span class="st">&quot;aragog&quot;</span><span class="fu">,</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;reaction_count&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;reactions&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;❤&quot;</span><span class="fu">:</span> <span class="dv">0</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">},</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;restacks&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;restacked&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;children_count&quot;</span><span class="fu">:</span> <span class="dv">0</span><span class="fu">,</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;attachments&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;user_bestseller_tier&quot;</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;userStatus&quot;</span><span class="fu">:</span> <span class="fu">{},</span></span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;language&quot;</span><span class="fu">:</span> <span class="st">&quot;en&quot;</span><span class="fu">,</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;autotranslate_to&quot;</span><span class="fu">:</span> <span class="kw">null</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;parentComments&quot;</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;isMuted&quot;</span><span class="fu">:</span> <span class="kw">false</span><span class="fu">,</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;canReply&quot;</span><span class="fu">:</span> <span class="kw">true</span><span class="fu">,</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;trackingParameters&quot;</span><span class="fu">:</span> <span class="fu">{}</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>This object contains all information regarding the message we have
+posted on Substack, including lot of useful statistics.</p>
+<h1 id="deleting-content">Deleting Content</h1>
+<p>Deleting content is easy, we can reuse the same end-point but using
+the DELETE HTTP method instead.</p>
+<pre class="console"><code>$ curl ${CURL_OPTS} \
+  -H &quot;Content-Type: application/json&quot; \
+  -d &#39;{}&#39; \
+  -X DELETE \
+  https://substack.com/api/v1/comment/${post_id}</code></pre>
+<p>In case of success, the end-point returns a 200 HTTP code with an
+empty JSON object.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>The full reverse engineering of the Substack private API is far from
+done and more is coming. I think we will have a lot of surprises in the
+future with this one. This is another reason why testing is so
+important, and if you can store the results of those tests, it’s even
+better.</p>
+<p>In this article, you saw how to use <code>curl</code> to call a
+private API, with the help of the browser to generate the right call. A
+draft of the <a
+href="https://gist.github.com/niamtokik/4a52f58d4027cad5338d53b9c43c66c2">Insomnia
+scratch pad</a> is available on Gist for now.</p>
+<p>I am not the only one working on this kind of projects, few of them
+are even sharing their code sources:</p>
+<ul>
+<li><p><a
+href="https://github.com/NHagar/substack_api"><code>substack_api</code></a>
+by <a href="https://github.com/NHagar">Nick Hagar</a> on Github, an
+implementation in Python;</p></li>
+<li><p><a
+href="https://github.com/ma2za/python-substack"><code>python-substack</code></a>
+by <a href="https://github.com/ma2za">Paolo Mazza</a> on Github, another
+implementation in Python.</p></li>
+</ul>
+<p>Anyway, this is the first publication of a long series about reverse
+engineering, and to be honest, I think starting our journey by reversing
+a public HTTP API is kinda easy. We don’t have to deal with proprietary
+binary format or weird protocol designed in-house.</p>
+<p>As usual, Hack well and have fun!</p>
+<hr />
+<p>Cover Image by
+<a href="https://unsplash.com/@alain_pham?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Alain
+Pham</a> on
+<a href="https://unsplash.com/photos/construction-frame-P_qvsF7Yodw?utm_source=unsplash&utm_medium=referral&utm_content=creditCopyText">Unsplash</a></p>

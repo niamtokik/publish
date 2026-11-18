@@ -19,6 +19,12 @@ when publishing contents.
 
 - `map`: add a `sitemap.xml` file
 
+- `age`: add support for `age` encryption tool
+
+- `signify`: add support for the `signify` tool
+
+- `gpg`: add support for the `gpg` tool
+
 ## How is it working?
 
 ## How to use a module?
